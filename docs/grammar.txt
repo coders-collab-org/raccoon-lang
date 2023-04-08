@@ -1,0 +1,40 @@
+program → item*
+item → fnDecl | structDecl | enumDecl | implDecl | useDecl | modDecl
+structDecl → "struct" IDENTIFIER ("{" structField* "}" | "(" structField* ")" | ";")
+structField → IDENTIFIER ":" type "," ","?
+enumDecl → "enum" IDENTIFIER "{" enumVariant* "}"
+enumVariant → IDENTIFIER ( "(" type ( "," type )_ ")" )? "," ","?
+implDecl → "impl" IDENTIFIER "{" implMethod_ "}"
+implMethod → fnDecl
+useDecl → "use" PATH ";" | "use" PATH "as" IDENTIFIER ";"
+modDecl → "mod" IDENTIFIER "{" item* "}"
+PATH → IDENTIFIER ( "::" IDENTIFIER )*
+letDecl → "let" IDENTIFIER ( ":" type )? ( "=" expression )? ";"
+constDecl → "const" IDENTIFIER ( ":" type )? "=" expression ";"
+fnDecl → "fn" IDENTIFIER "(" parameters? ")" ( "->" type )? blockStmt
+parameters → parameter ( "," parameter )_
+parameter → PATH ":" type
+ifStmt → "if" expression blockStmt ( "else" blockStmt )?
+matchStmt → "match" expression "{" matchCase_ "}"
+matchCase → expression "=>" blockStmt ";"
+loopStmt → "loop" blockStmt
+whileStmt → "while" expression blockStmt
+forStmt → "for" IDENTIFIER "in" expression blockStmt
+blockStmt → "{" statement* "}"
+exprStmt → expression ";"
+expression → literal | IDENTIFIER | unaryExpr | binaryExpr | groupExpr | callExpr | accessExpr
+literal → INT | FLOAT | STRING | "true" | "false"
+unaryExpr → ( "-" | "!" ) expression
+binaryExpr → expression operator expression
+operator → "+" | "-" | "*" | "/" | "%" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||" | "&" | "|" | "^" | "<<" | ">>" | "+=" | "-=" | "_=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
+groupExpr → "(" expression ")"
+callExpr → expression "(" arguments? ")"
+arguments → expression ( "," expression )_
+accessExpr → expression ( "." IDENTIFIER | "[" expression "]" )_
+type → "int" | "float" | "bool" | "str" | IDENTIFIER
+IDENTIFIER → ALPHA ( ALPHA | DIGIT | "\_" )_
+ALPHA → "a" ... "z" | "A" ... "Z"
+DIGIT → "0" ... "9"
+INT → DIGIT+
+FLOAT → DIGIT+ "." DIGIT*
+STRING → '"' <any char except '"'>* '"'
