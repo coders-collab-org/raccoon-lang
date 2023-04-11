@@ -30,7 +30,12 @@ impl<'a> Cursor<'a> {
 
     #[inline]
     pub fn peek(&self, ch: char) -> bool {
-        self.input.clone().next() == Some(ch)
+        self.peek_char() == Some(ch)
+    }
+
+    #[inline]
+    pub fn peek_char(&self) -> Option<char> {
+        self.input.clone().next()
     }
 
     #[inline]
@@ -154,7 +159,7 @@ impl<'a> Lexer<'a> {
 
     #[inline]
     pub fn skip_whitespace(&mut self) -> Token {
-        while let Some(ch) = self.cursor.clone().next() {
+        while let Some(ch) = self.cursor.peek_char() {
             if !ch.is_whitespace() {
                 break;
             }
@@ -172,7 +177,7 @@ impl<'a> Lexer<'a> {
             String::new()
         };
 
-        while let Some(ch) = self.cursor.clone().next() {
+        while let Some(ch) = self.cursor.peek_char() {
             match ch {
                 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => buf.push(ch),
                 _ => break,
@@ -194,7 +199,7 @@ impl<'a> Lexer<'a> {
         };
         let mut scanned_float = false;
 
-        while let Some(ch) = self.cursor.clone().next() {
+        while let Some(ch) = self.cursor.peek_char() {
             match ch {
                 '0'..='9' => buf.push(ch),
                 '.' if scan_float && !scanned_float => {
