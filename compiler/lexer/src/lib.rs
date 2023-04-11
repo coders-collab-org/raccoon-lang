@@ -197,13 +197,9 @@ impl<'a> Lexer<'a> {
         while let Some(ch) = self.cursor.clone().next() {
             match ch {
                 '0'..='9' => buf.push(ch),
-                '.' => {
-                    if scan_float {
-                        buf.push(ch);
-                        scanned_float = true;
-                    } else {
-                        break;
-                    }
+                '.' if scan_float && !scanned_float => {
+                    buf.push(ch);
+                    scanned_float = true;
                 }
                 _ => break,
             }
