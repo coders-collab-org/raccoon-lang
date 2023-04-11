@@ -1,2 +1,2 @@
 [workspace]
-members = ["compiler/raccoon"]
+members = ["compiler/lexer", "compiler/ast", "compiler/span"]
