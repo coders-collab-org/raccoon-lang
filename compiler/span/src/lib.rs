@@ -36,12 +36,16 @@ impl Span {
     pub fn is_dummy(&self) -> bool {
         *self == DUMMY_SP
     }
+
+    pub fn to(self, other: Span) -> Span {
+        Span::new(self.lo, other.hi)
+    }
 }
 
 impl GlobalSession {
     pub fn new() -> GlobalSession {
         GlobalSession {
-            symbols: Interner::new(),
+            symbols: Interner::fresh(),
         }
     }
 }
@@ -53,6 +57,12 @@ impl Default for GlobalSession {
 
 lazy_static! {
     pub static ref GLOBAL_SESSION: GlobalSession = GlobalSession::new();
+}
+
+impl BytePos {
+    pub fn to(self, other: BytePos) -> Span {
+        Span::new(self, other)
+    }
 }
 
 impl Add for BytePos {
