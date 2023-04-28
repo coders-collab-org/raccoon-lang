@@ -3,7 +3,7 @@
 use std::str::Chars;
 
 use raccoon_ast::{BinOpToken, CondOpToken, Delimiter, Lit, Token, TokenKind, UnOpToken};
-use raccoon_span::{BytePos, Span, Symbol};
+use raccoon_span::{kw, BytePos, Span, Symbol};
 use TokenKind::*;
 
 /// A `Cursor` is a wrapper around a [Chars] iterator that provides some additional methods
@@ -54,6 +54,11 @@ impl<'a> Cursor<'a> {
     pub fn pos(&self) -> BytePos {
         BytePos((self.len - self.input.as_str().len()) as u32)
     }
+
+    #[inline]
+    pub fn is_eof(&self) -> bool {
+        self.input.as_str().is_empty()
+    }
 }
 
 impl Iterator for Cursor<'_> {
@@ -92,17 +97,21 @@ impl<'a> Lexer<'a> {
         let kind = match ch {
             '=' => if_cond!('=', CondOp(CondOpToken::Eq), Eq),
             '+' => if_cond!('=', BinOpEq(BinOpToken::Add), BinOp(BinOpToken::Add)),
-            '-' => if_cond!('=', BinOpEq(BinOpToken::Sub), BinOp(BinOpToken::Sub)),
+            '-' => if_cond!(
+                '=',
+                BinOpEq(BinOpToken::Sub),
+                if_cond!('>', RArrow, BinOp(BinOpToken::Sub))
+            ),
             '*' => if_cond!('=', BinOpEq(BinOpToken::Mul), BinOp(BinOpToken::Mul)),
-            '^' => if_cond!('=', BinOpEq(BinOpToken::Xor), BinOp(BinOpToken::Xor)),
+            '^' => if_cond!('=', BinOpEq(BinOpToken::BitXor), BinOp(BinOpToken::BitXor)),
             '%' => if_cond!('=', BinOpEq(BinOpToken::Rem), BinOp(BinOpToken::Rem)),
             '!' => if_cond!('=', CondOp(CondOpToken::Ne), UnOp(UnOpToken::Not)),
-            ':' => if_cond!(':', ColonColon, Colon),
+            ':' => if_cond!(':', DoubleColon, Colon),
             '.' => Dot,
             ',' => Comma,
             ';' => Semi,
-            '(' => OpenDelim(Delimiter::Parenthesis),
-            ')' => CloseDelim(Delimiter::Parenthesis),
+            '(' => OpenDelim(Delimiter::Paren),
+            ')' => CloseDelim(Delimiter::Paren),
             '{' => OpenDelim(Delimiter::Brace),
             '}' => CloseDelim(Delimiter::Brace),
             '[' => OpenDelim(Delimiter::Bracket),
@@ -119,13 +128,13 @@ impl<'a> Lexer<'a> {
             ),
             '&' => if_cond!(
                 '&',
-                CondOp(CondOpToken::And),
-                if_cond!('=', BinOpEq(BinOpToken::And), BinOp(BinOpToken::And))
+                if_cond!('=', BinOpEq(BinOpToken::And), BinOp(BinOpToken::And)),
+                if_cond!('=', BinOpEq(BinOpToken::BitAnd), BinOp(BinOpToken::BitAnd))
             ),
             '|' => if_cond!(
                 '|',
-                CondOp(CondOpToken::Or),
-                if_cond!('=', BinOpEq(BinOpToken::Or), BinOp(BinOpToken::Or))
+                if_cond!('=', BinOpEq(BinOpToken::Or), BinOp(BinOpToken::Or)),
+                if_cond!('=', BinOpEq(BinOpToken::BitOr), BinOp(BinOpToken::BitOr))
             ),
             '>' => if_cond!(
                 '=',
@@ -187,6 +196,13 @@ impl<'a> Lexer<'a> {
 
         let sym = Symbol::intern(&buf);
 
+        if matches!(sym, kw::True | kw::False) {
+            return Token::new(
+                TokenKind::Lit(Lit::new_bool(sym)),
+                Span::new(start, self.cursor.pos()),
+            );
+        }
+
         Token::new(TokenKind::Ident(sym), Span::new(start, self.cursor.pos()))
     }
 
@@ -211,13 +227,13 @@ impl<'a> Lexer<'a> {
             self.cursor.bump();
         }
 
-        let sym = if scanned_float {
+        let lit = if scanned_float {
             Lit::new_float(Symbol::intern(&buf))
         } else {
             Lit::new_int(Symbol::intern(&buf))
         };
 
-        Token::new(TokenKind::Lit(sym), Span::new(start, self.cursor.pos()))
+        Token::new(TokenKind::Lit(lit), Span::new(start, self.cursor.pos()))
     }
 
     #[inline]
@@ -268,5 +284,15 @@ impl<'a> Lexer<'a> {
         }
 
         self.advance()
+    }
+
+    #[inline]
+    pub fn is_eof(&self) -> bool {
+        self.cursor.is_eof()
+    }
+
+    #[inline]
+    pub fn pos(&self) -> BytePos {
+        self.cursor.pos()
     }
 }
