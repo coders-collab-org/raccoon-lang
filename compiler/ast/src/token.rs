@@ -1,28 +1,18 @@
 //! A token is a lexical unit of the source code.
 
-use raccoon_span::{Span, Symbol, DUMMY_SP};
+use raccoon_span::{Ident, Span, Symbol, DUMMY_SP};
 
 pub const DUMMY_TOKEN: Token = Token::new(TokenKind::Dummy, DUMMY_SP);
 
 /// A token is a lexical unit of the source code.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
 }
 
-impl Token {
-    pub const fn new(kind: TokenKind, span: Span) -> Token {
-        Token { kind, span }
-    }
-
-    pub fn is_eof(&self) -> bool {
-        self.kind == TokenKind::Eof
-    }
-}
-
 /// A token kind.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     /// A conditional operator.
     CondOp(CondOpToken),
@@ -52,10 +42,16 @@ pub enum TokenKind {
     Colon,
 
     /// `::`.
-    ColonColon,
+    DoubleColon,
 
     /// `"`.
     Quote,
+
+    /// `->`.
+    RArrow,
+
+    /// `#`.
+    Hash,
 
     /// A literal.
     Lit(Lit),
@@ -80,7 +76,7 @@ pub enum TokenKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Delimiter {
     /// `(...)`.
-    Parenthesis,
+    Paren,
 
     /// `[...]`.
     Bracket,
@@ -90,7 +86,7 @@ pub enum Delimiter {
 }
 
 /// A literal value.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Lit {
     pub kind: LitKind,
     pub symbol: Symbol,
@@ -110,6 +106,10 @@ impl Lit {
 
     pub fn new_float(symbol: Symbol) -> Lit {
         Lit::new(LitKind::Float, symbol)
+    }
+
+    pub fn new_bool(symbol: Symbol) -> Lit {
+        Lit::new(LitKind::Bool, symbol)
     }
 }
 
@@ -149,12 +149,6 @@ pub enum CondOpToken {
 
     /// `>=`
     Ge,
-
-    /// `&&`
-    And,
-
-    /// `||`
-    Or,
 }
 
 /// A binary operator.
@@ -176,19 +170,25 @@ pub enum BinOpToken {
     Rem,
 
     /// `&`
-    And,
+    BitAnd,
 
     /// `|`
-    Or,
+    BitOr,
 
     /// `^`
-    Xor,
+    BitXor,
 
     /// `<<`
     Shl,
 
     /// `>>`
     Shr,
+
+    /// `&&`
+    And,
+
+    /// `||`
+    Or,
 }
 
 /// A unary operator.
@@ -198,8 +198,36 @@ pub enum UnOpToken {
     Not,
 
     /// `~`
-    NotBitwise,
+    BitNot,
 
     /// `-`
     Neg,
+}
+
+impl Token {
+    pub const fn new(kind: TokenKind, span: Span) -> Token {
+        Token { kind, span }
+    }
+
+    pub fn is_eof(&self) -> bool {
+        self.kind == TokenKind::Eof
+    }
+
+    pub fn is_dummy(&self) -> bool {
+        self.kind == TokenKind::Dummy
+    }
+
+    pub fn lit(&self) -> Option<Lit> {
+        match self.kind {
+            TokenKind::Lit(lit) => Some(lit),
+            _ => None,
+        }
+    }
+
+    pub fn ident(&self) -> Option<Ident> {
+        match self.kind {
+            TokenKind::Ident(ident) => Some(Ident::new(ident, self.span)),
+            _ => None,
+        }
+    }
 }
