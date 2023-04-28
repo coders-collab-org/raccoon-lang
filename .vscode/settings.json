@@ -1,0 +1,4 @@
+{
+  "rust-analyzer.linkedProjects": ["./compiler/parse/Cargo.toml"],
+  "cSpell.words": ["prec"]
+}
