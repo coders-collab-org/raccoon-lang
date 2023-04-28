@@ -1,0 +1,43 @@
+program → item*
+item → fnDecl | structDecl | enumDecl | implDecl | useDecl | modDecl
+structDecl → "struct" IDENTIFIER ("{" structField* ","? "}" | "(" structField* ","? ")" | ";")
+structField → IDENTIFIER ":" type "," 
+enumDecl → "enum" IDENTIFIER "{" enumVariant* "}"
+enumVariant → IDENTIFIER ( "(" type ( "," type )_ ")" )? "," ","?
+implDecl → "impl" IDENTIFIER "{" implMethod* "}"
+implMethod → fnDecl
+useDecl → "use" PATH ";" | "use" PATH "as" IDENTIFIER ";"
+modDecl → "mod" IDENTIFIER "{" item* "}"
+PATH → IDENTIFIER ( "::" IDENTIFIER )*
+letDecl → "let" IDENTIFIER ( ":" type )? ( "=" expression )? ";"
+constDecl → "const" IDENTIFIER ( ":" type )? "=" expression ";"
+fnDecl → "fn" IDENTIFIER "(" parameters? ")" ( "->" type )? blockExpr
+parameters → parameter ( "," parameter )* ","?
+parameter → PATH ":" type
+ifExpr → "if" expression blockExpr ("else" (blockExpr | ifExpr) )?
+matchExpr → "match" expression "{" matchCase "}"
+matchCase → pattern "=>" ((expression ";") | blockExpr)
+loopExpr → "loop" blockExpr
+whileExpr → "while" expression blockExpr
+forExpr → "for" IDENTIFIER "in" expression blockExpr
+blockExpr → "{" statement* "}"
+structExpr → "#{" structFieldExpr* ","? "}"
+structFieldExpr → IDENTIFIER ":" expression "," 
+statement → letDecl | item | exprStmt
+exprStmt → expression ";"
+expression → literal | IDENTIFIER | unaryExpr | binaryExpr | groupExpr | callExpr | accessExpr | ifExpr | matchExpr | loopExpr | whileExpr | forExpr
+literal → INT | FLOAT | STRING | "true" | "false"
+unaryExpr → ( "-" | "!" ) expression
+binaryExpr → expression operator expression
+operator → "+" | "-" | "*" | "/" | "%" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||" | "&" | "|" | "^" | "<<" | ">>" | "+=" | "-=" | "_=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
+groupExpr → "(" expression ")"
+callExpr → expression "(" arguments? ")"
+arguments → expression ( "," expression )_
+accessExpr → expression ( "." IDENTIFIER | "[" expression "]" )_
+type → "int" | "float" | "bool" | "str" | IDENTIFIER
+IDENTIFIER → ALPHA ( ALPHA | DIGIT | "\_" )_
+ALPHA → "a" ... "z" | "A" ... "Z"
+DIGIT → "0" ... "9"
+INT → DIGIT+
+FLOAT → DIGIT+ "." DIGIT*
+STRING → '"' <any char except '"'>* '"'

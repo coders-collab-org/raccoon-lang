@@ -336,7 +336,7 @@ let person = Person("John", 20);
 
 ```rust
 
-let person: Person = {
+let person: Person = #{
     name: "John",
     age: 20,
 };
