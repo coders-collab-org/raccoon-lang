@@ -2,46 +2,61 @@
 
 #![allow(non_upper_case_globals)]
 
-use std::{fmt::Display, sync::Mutex};
+use std::{fmt::Display, ops::Deref, sync::Mutex};
 
 use fxhash::FxHashMap;
+use raccoon_macros::symbols;
 use typed_arena::Arena;
 
-use crate::GLOBAL_SESSION;
+use crate::{Span, DUMMY_SP, GLOBAL_SESSION};
 
-macro_rules! keywords {
-    ($($name:ident: $string:expr),* $(,)?) => {
-        pub mod kw {
-            lazy_static::lazy_static! {
-                $(
-                    pub static ref $name: $crate::Symbol = $crate::Symbol::intern($string);
-                )*
-            }
-        }
-    };
-}
+symbols! {
+    {
+        // Special tokens
+        Empty: "",
+        Wildcard: "_",
 
-keywords! {
-    Let: "let",
-    Const: "const",
-    If: "if",
-    Else: "else",
-    While: "while",
-    For: "for",
-    In: "in",
-    Loop: "loop",
-    Break: "break",
-    Continue: "continue",
-    Return: "return",
-    Fn: "fn",
-    Struct: "struct",
-    Enum: "enum",
-
+        // Keywords
+        Let: "let",
+        Const: "const",
+        If: "if",
+        Else: "else",
+        While: "while",
+        For: "for",
+        In: "in",
+        Loop: "loop",
+        Break: "break",
+        Continue: "continue",
+        Return: "return",
+        Mod: "mod",
+        Use: "use",
+        Fn: "fn",
+        Struct: "struct",
+        Enum: "enum",
+        Pub: "pub",
+        True: "true",
+        False: "false",
+        As: "as",
+        Crate: "crate",
+        SelfLower: "self",
+        SelfUpper: "Self",
+        Super: "super",
+    }
 }
 
 /// A `Symbol` is an interned string that is used to represent identifiers and keywords.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Symbol(u32);
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+/// An identifier (e.g. `foo`).
+pub struct Ident {
+    /// The name of the identifier.
+    pub name: Symbol,
+
+    /// span of the identifier
+    pub span: Span,
+}
 
 impl Symbol {
     #[inline]
@@ -63,6 +78,36 @@ impl Symbol {
     pub fn intern(string: &str) -> Symbol {
         GLOBAL_SESSION.symbols.intern(string)
     }
+
+    #[inline]
+    pub fn is_keyword(self) -> bool {
+        self <= kw::Pub && self >= kw::Let
+    }
+
+    pub fn is_path_segment_keyword(self) -> bool {
+        self == kw::SelfLower || self == kw::Super || self == kw::SelfUpper || self == kw::Crate
+    }
+}
+
+impl Ident {
+    pub fn new(name: Symbol, span: Span) -> Self {
+        Ident { name, span }
+    }
+
+    pub fn empty() -> Self {
+        Ident {
+            name: kw::Empty,
+            span: DUMMY_SP,
+        }
+    }
+}
+
+impl Deref for Ident {
+    type Target = Symbol;
+
+    fn deref(&self) -> &Symbol {
+        &self.name
+    }
 }
 
 /// An `Interner` is used to intern strings into [Symbol]s.
@@ -75,12 +120,11 @@ pub struct InternerInner {
 }
 
 impl Interner {
-    #[inline]
-    pub fn new() -> Interner {
+    pub fn prefill(strings: &[&'static str]) -> Self {
         Interner(Mutex::new(InternerInner {
             arena: Arena::new(),
-            symbols: FxHashMap::default(),
-            strings: Vec::new(),
+            strings: strings.to_owned(),
+            symbols: strings.iter().copied().zip((0..).map(Symbol)).collect(),
         }))
     }
 
@@ -111,11 +155,5 @@ impl Interner {
 impl Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
-    }
-}
-
-impl Default for Interner {
-    fn default() -> Self {
-        Self::new()
     }
 }
