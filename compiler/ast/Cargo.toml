@@ -4,4 +4,5 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+thin-vec = "0.2.12"
 raccoon_span = { path = "../span" }
